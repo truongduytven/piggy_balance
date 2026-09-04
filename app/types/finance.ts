@@ -115,5 +115,7 @@ export interface ChatMessage {
       wallet?: string;
     };
     adviceData?: PurchaseAdviceData;
+    status?: 'pending' | 'confirmed' | 'cancelled';
+    isConfirmed?: boolean;
   };
 }

@@ -11,7 +11,7 @@ interface SettingsViewProps {
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ onOpenNewMonthWizard }) => {
-  const { activeMonth, addFixedExpense, deleteFixedExpense } = useFinance();
+  const { activeMonth, addFixedExpense, deleteFixedExpense, isApiLoading } = useFinance();
 
   const [newFixedName, setNewFixedName] = useState('');
   const [newFixedAmount, setNewFixedAmount] = useState('');
@@ -134,9 +134,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onOpenNewMonthWizard
               />
               <button
                 type="submit"
-                className="px-3.5 bg-[#6FCF97] hover:bg-[#58B880] text-white rounded-xl text-xs font-bold"
+                disabled={isApiLoading}
+                className="px-3.5 bg-[#6FCF97] hover:bg-[#58B880] disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1 min-w-[58px]"
               >
-                Thêm
+                {isApiLoading ? (
+                  <div className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                ) : (
+                  <span>Thêm</span>
+                )}
               </button>
             </div>
           </form>

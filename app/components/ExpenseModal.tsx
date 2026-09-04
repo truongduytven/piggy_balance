@@ -15,7 +15,7 @@ interface ExpenseModalProps {
 }
 
 export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
-  const { addExpense, activeMonth } = useFinance();
+  const { addExpense, activeMonth, isApiLoading } = useFinance();
 
   const [amountStr, setAmountStr] = useState<string>('');
   const [category, setCategory] = useState<ExpenseCategory>('food');
@@ -32,8 +32,9 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) =
     setAmountStr(val.toString());
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isApiLoading) return;
     const amount = parseInt(amountStr.replace(/\D/g, ''), 10);
     if (isNaN(amount) || amount <= 0) {
       alert('Vui lòng nhập số tiền hợp lệ nha!');
@@ -42,7 +43,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) =
 
     const finalDesc = description.trim() || CATEGORIES[category].name;
 
-    addExpense({
+    await addExpense({
       amount,
       category,
       description: finalDesc,
@@ -183,10 +184,15 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) =
           {/* Nút submit */}
           <button
             type="submit"
-            className="w-full mt-3 py-4 rounded-2xl bg-[#6FCF97] hover:bg-[#58B880] text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-[0_8px_25px_rgba(111,207,151,0.35)] active:scale-98 transition-all"
+            disabled={isApiLoading}
+            className="w-full mt-3 py-4 rounded-2xl bg-[#6FCF97] hover:bg-[#58B880] disabled:opacity-50 text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-[0_8px_25px_rgba(111,207,151,0.35)] active:scale-98 transition-all"
           >
-            <Plus size={18} />
-            <span>Lưu khoản chi</span>
+            {isApiLoading ? (
+              <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+            ) : (
+              <Plus size={18} />
+            )}
+            <span>{isApiLoading ? 'Đang lưu...' : 'Lưu khoản chi'}</span>
           </button>
         </form>
 

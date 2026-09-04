@@ -14,7 +14,7 @@ interface NewMonthWizardProps {
 }
 
 export const NewMonthWizard: React.FC<NewMonthWizardProps> = ({ isOpen, onClose }) => {
-  const { createNewMonth } = useFinance();
+  const { createNewMonth, isApiLoading } = useFinance();
 
   const currentDate = new Date();
   const currentMonthNum = currentDate.getMonth() + 1;
@@ -355,10 +355,15 @@ export const NewMonthWizard: React.FC<NewMonthWizardProps> = ({ isOpen, onClose 
               </button>
               <button
                 onClick={handleFinishLockBudget}
-                className="flex-1 py-4 bg-[#6FCF97] hover:bg-[#58B880] text-white font-extrabold text-sm rounded-2xl flex items-center justify-center gap-2 shadow-[0_8px_25px_rgba(111,207,151,0.35)] active:scale-98 transition-all"
+                disabled={isApiLoading}
+                className="flex-1 py-4 bg-[#6FCF97] hover:bg-[#58B880] disabled:opacity-50 text-white font-extrabold text-sm rounded-2xl flex items-center justify-center gap-2 shadow-[0_8px_25px_rgba(111,207,151,0.35)] active:scale-98 transition-all"
               >
-                <Lock size={16} />
-                <span>Chốt ngân sách</span>
+                {isApiLoading ? (
+                  <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                ) : (
+                  <Lock size={16} />
+                )}
+                <span>{isApiLoading ? 'Đang lưu...' : 'Chốt ngân sách'}</span>
               </button>
             </div>
           </div>

@@ -6,6 +6,7 @@ import {
   X,
   Send,
   Sparkles,
+  Check,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useFinance } from '../context/FinanceContext';
@@ -23,7 +24,7 @@ export const CozyAssistant: React.FC<CozyAssistantProps> = ({
   isOpen,
   onClose,
 }) => {
-  const { activeMonth, activeMonthSummary, addExpense } = useFinance();
+  const { activeMonth, activeMonthSummary, addExpense, isApiLoading } = useFinance();
 
   const [inputVal, setInputVal] = useState<string>('');
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -265,9 +266,44 @@ export const CozyAssistant: React.FC<CozyAssistantProps> = ({
   };
 
   // Xác nhận lưu khoản chi từ Card
-  const handleConfirmExpense = async (expenseData?: ParsedExpenseData) => {
+  const handleConfirmExpense = async (expenseData?: ParsedExpenseData, msgId?: string) => {
     const dataToSave = expenseData || pendingExpense;
     if (!dataToSave) return;
+
+    // Ẩn xác nhận nếu đã xác nhận ở Cozy AI: đánh dấu message card là đã xác nhận
+    if (msgId) {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === msgId && m.card
+            ? {
+                ...m,
+                card: {
+                  ...m.card,
+                  isConfirmed: true,
+                  status: 'confirmed',
+                },
+              }
+            : m
+        )
+      );
+    } else {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.card?.type === 'confirmation' && !m.card.isConfirmed
+            ? {
+                ...m,
+                card: {
+                  ...m.card,
+                  isConfirmed: true,
+                  status: 'confirmed',
+                },
+              }
+            : m
+        )
+      );
+    }
+
+    setPendingExpense(null);
 
     await addExpense({
       amount: dataToSave.amount,
@@ -275,8 +311,6 @@ export const CozyAssistant: React.FC<CozyAssistantProps> = ({
       description: dataToSave.description,
       wallet: 'Ví chính',
     });
-
-    setPendingExpense(null);
 
     try {
       confetti({
@@ -300,7 +334,36 @@ export const CozyAssistant: React.FC<CozyAssistantProps> = ({
     }, 300);
   };
 
-  const handleCancelExpense = () => {
+  const handleCancelExpense = (msgId?: string) => {
+    if (msgId) {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === msgId && m.card
+            ? {
+                ...m,
+                card: {
+                  ...m.card,
+                  status: 'cancelled',
+                },
+              }
+            : m
+        )
+      );
+    } else {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.card?.type === 'confirmation' && !m.card.isConfirmed
+            ? {
+                ...m,
+                card: {
+                  ...m.card,
+                  status: 'cancelled',
+                },
+              }
+            : m
+        )
+      );
+    }
     setPendingExpense(null);
     addCozyMessage('Đã hủy khoản chi này rồi nha!');
   };
@@ -411,26 +474,46 @@ export const CozyAssistant: React.FC<CozyAssistantProps> = ({
                       {msg.card.data.date} • {msg.card.data.wallet}
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={handleCancelExpense}
-                        className="flex-1 py-2 rounded-xl bg-white text-[#7A7D8C] text-xs font-bold border border-gray-200 hover:bg-gray-50 transition-colors"
-                      >
-                        Hủy
-                      </button>
-                      <button
-                        onClick={() =>
-                          handleConfirmExpense({
-                            amount: msg.card?.data?.amount || 0,
-                            category: msg.card?.data?.category || 'food',
-                            description: msg.card?.data?.description || 'Ăn uống',
-                          })
-                        }
-                        className="flex-1 py-2 rounded-xl bg-[#6FCF97] text-white text-xs font-bold hover:bg-[#58B880] transition-colors shadow-xs"
-                      >
-                        Xác nhận
-                      </button>
-                    </div>
+                    {/* Ẩn xác nhận nếu đã xác nhận ở Cozy AI */}
+                    {msg.card.isConfirmed || msg.card.status === 'confirmed' ? (
+                      <div className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-[#EBF8F1] dark:!bg-[#162E21] text-[#58B880] text-xs font-bold border border-[#6FCF97]/30">
+                        <Check size={14} strokeWidth={3} />
+                        <span>Đã xác nhận & ghi vào sổ</span>
+                      </div>
+                    ) : msg.card.status === 'cancelled' ? (
+                      <div className="py-2 px-3 rounded-xl bg-gray-100 dark:!bg-white/5 text-gray-400 text-xs font-bold text-center italic">
+                        Đã hủy khoản chi này
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleCancelExpense(msg.id)}
+                          disabled={isApiLoading}
+                          className="flex-1 py-2 rounded-xl bg-white dark:!bg-[#1E202C] text-[#7A7D8C] dark:!text-[#9DA1B4] text-xs font-bold border border-gray-200 dark:!border-white/10 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                        >
+                          Hủy
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleConfirmExpense(
+                              {
+                                amount: msg.card?.data?.amount || 0,
+                                category: msg.card?.data?.category || 'food',
+                                description: msg.card?.data?.description || 'Ăn uống',
+                              },
+                              msg.id
+                            )
+                          }
+                          disabled={isApiLoading}
+                          className="flex-1 py-2 rounded-xl bg-[#6FCF97] hover:bg-[#58B880] text-white text-xs font-bold transition-colors shadow-xs flex items-center justify-center gap-1.5 disabled:opacity-50"
+                        >
+                          {isApiLoading ? (
+                            <div className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                          ) : null}
+                          <span>Xác nhận</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -505,29 +588,45 @@ export const CozyAssistant: React.FC<CozyAssistantProps> = ({
                       💡 {msg.card.adviceData.advice}
                     </div>
 
-                    {/* Nút hành động nhanh */}
-                    <button
-                      onClick={() => {
-                        setPendingExpense({
-                          amount: msg.card?.adviceData?.amount || 0,
-                          category: msg.card?.adviceData?.category || 'shopping',
-                          description: msg.card?.adviceData?.item || 'Mua sắm',
-                        });
-                        addCozyMessage(`Tuyệt vời! Bạn xác nhận để Cozy ghi khoản này vào sổ nhé:`, {
-                          type: 'confirmation',
-                          data: {
-                            amount: msg.card?.adviceData?.amount || 0,
-                            category: msg.card?.adviceData?.category || 'shopping',
-                            description: msg.card?.adviceData?.item || 'Mua sắm',
-                            date: 'Hôm nay',
-                            wallet: 'Ví chính',
-                          },
-                        });
-                      }}
-                      className="w-full py-2.5 rounded-xl bg-[#6FCF97] hover:bg-[#58B880] text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5"
-                    >
-                      <span>💸 Quyết định mua & ghi vào sổ</span>
-                    </button>
+                    {/* Nút hành động nhanh: Ẩn xác nhận nếu đã xác nhận ở Cozy AI (ghi trực tiếp) */}
+                    {msg.card.isConfirmed ? (
+                      <div className="w-full py-2.5 rounded-xl bg-[#EBF8F1] dark:!bg-[#162E21] text-[#58B880] text-xs font-bold border border-[#6FCF97]/30 flex items-center justify-center gap-1.5">
+                        <Check size={14} strokeWidth={3} />
+                        <span>✓ Đã ghi vào sổ chi tiêu</span>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          const item = msg.card?.adviceData?.item || 'Mua sắm';
+                          const amount = msg.card?.adviceData?.amount || 0;
+                          const category = msg.card?.adviceData?.category || 'shopping';
+
+                          // Đánh dấu thẻ advice này là đã xác nhận
+                          setMessages((prev) =>
+                            prev.map((m) =>
+                              m.id === msg.id && m.card
+                                ? { ...m, card: { ...m.card, isConfirmed: true, status: 'confirmed' } }
+                                : m
+                            )
+                          );
+
+                          // Ghi trực tiếp vì người dùng đã xác nhận quyết định mua ở Cozy AI
+                          handleConfirmExpense({
+                            amount,
+                            category,
+                            description: item,
+                          });
+                        }}
+                        disabled={isApiLoading}
+                        className="w-full py-2.5 rounded-xl bg-[#6FCF97] hover:bg-[#58B880] disabled:opacity-50 text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5"
+                      >
+                        {isApiLoading ? (
+                          <div className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                        ) : (
+                          <span>💸 Quyết định mua & ghi vào sổ</span>
+                        )}
+                      </button>
+                    )}
                   </div>
                 )}
 

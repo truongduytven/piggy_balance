@@ -447,6 +447,22 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   animation: fadeIn 0.25s ease-out forwards;
 }
 
+@keyframes loadingProgress {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-loading-progress {
+  animation: loadingProgress 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
 .cozy-card-shadow {
   box-shadow: 0 10px 30px -4px rgba(61, 64, 91, 0.05), 0 2px 8px -2px rgba(61, 64, 91, 0.03);
 }
