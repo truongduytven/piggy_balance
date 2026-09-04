@@ -88,7 +88,7 @@ export const NewMonthWizard: React.FC<NewMonthWizardProps> = ({ isOpen, onClose 
         origin: { y: 0.6 },
         colors: ['#6FCF97', '#FF8FAB', '#FFD166'],
       });
-    } catch {}
+    } catch { }
 
     setStep(7);
     setTimeout(() => {
@@ -122,9 +122,8 @@ export const NewMonthWizard: React.FC<NewMonthWizardProps> = ({ isOpen, onClose 
           {[1, 2, 3].map((s) => (
             <div
               key={s}
-              className={`h-1.5 flex-1 rounded-full transition-all ${
-                step >= s ? 'bg-[#6FCF97]' : 'bg-gray-100'
-              }`}
+              className={`h-1.5 flex-1 rounded-full transition-all ${step >= s ? 'bg-[#6FCF97]' : 'bg-gray-100'
+                }`}
             />
           ))}
         </div>
@@ -359,7 +358,7 @@ export const NewMonthWizard: React.FC<NewMonthWizardProps> = ({ isOpen, onClose 
                 className="flex-1 py-4 bg-[#6FCF97] hover:bg-[#58B880] text-white font-extrabold text-sm rounded-2xl flex items-center justify-center gap-2 shadow-[0_8px_25px_rgba(111,207,151,0.35)] active:scale-98 transition-all"
               >
                 <Lock size={16} />
-                <span>Chốt ngân sách 🔒</span>
+                <span>Chốt ngân sách</span>
               </button>
             </div>
           </div>
@@ -372,7 +371,7 @@ export const NewMonthWizard: React.FC<NewMonthWizardProps> = ({ isOpen, onClose 
               <Check size={32} strokeWidth={3} />
             </div>
             <h4 className="text-lg font-extrabold text-[#3D405B]">
-              Ngân sách tuần đã được chốt! 🔒
+              Ngân sách tuần đã được chốt!
             </h4>
             <p className="text-sm font-bold text-[#6FCF97] mt-1">
               {formatVND(finalWeeklyBudget)} / tuần
