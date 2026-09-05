@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     const mStr = monthNumber < 10 ? `0${monthNumber}` : `${monthNumber}`;
     const monthId = `${year}-${mStr}`;
     const monthName = `Tháng ${monthNumber}, ${year}`;
-    const weeks = generateWeeksForMonth(year, monthNumber, preferFourWeeks !== false);
+    const weeks = generateWeeksForMonth(year, monthNumber);
 
     const client = await pool.connect();
 

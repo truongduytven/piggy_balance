@@ -28,84 +28,84 @@ export function getDaysInMonth(year: number, monthNumber: number): number {
  * - Mặc định chia 4 tuần (3 tuần đầu 7 ngày, tuần 4 đến hết tháng),
  * - Hoặc 5 tuần nếu tháng có > 28 ngày và cấu hình 5 tuần.
  */
+/**
+ * Tạo danh sách các tuần cho tháng theo lịch thực tế (Thứ Hai đến Chủ Nhật).
+ * - Tuần 1 bắt đầu từ ngày 1 của tháng cho đến Chủ Nhật đầu tiên của tháng.
+ * - Các tuần tiếp theo chạy trọn vẹn từ Thứ Hai đến Chủ Nhật.
+ * - Tuần cuối cùng bắt đầu từ Thứ Hai và kết thúc vào ngày cuối cùng của tháng.
+ * - Tự động xác định chính xác tuần hiện tại dựa trên ngày hôm nay.
+ */
 export function generateWeeksForMonth(
   year: number,
-  monthNumber: number,
-  preferFourWeeks: boolean = true
+  monthNumber: number
 ): WeekPeriod[] {
   const totalDays = getDaysInMonth(year, monthNumber);
   const mStr = monthNumber < 10 ? `0${monthNumber}` : `${monthNumber}`;
 
-  if (preferFourWeeks) {
-    // 4 tuần: 01-07, 08-14, 15-21, 22-totalDays
-    return [
-      {
-        index: 1,
-        name: 'Tuần 1',
-        startDate: `01/${mStr}`,
-        endDate: `07/${mStr}`,
-        fullStartDate: `${year}-${mStr}-01`,
-        fullEndDate: `${year}-${mStr}-07`,
-        isCurrent: true,
-      },
-      {
-        index: 2,
-        name: 'Tuần 2',
-        startDate: `08/${mStr}`,
-        endDate: `14/${mStr}`,
-        fullStartDate: `${year}-${mStr}-08`,
-        fullEndDate: `${year}-${mStr}-14`,
-        isCurrent: false,
-      },
-      {
-        index: 3,
-        name: 'Tuần 3',
-        startDate: `15/${mStr}`,
-        endDate: `21/${mStr}`,
-        fullStartDate: `${year}-${mStr}-15`,
-        fullEndDate: `${year}-${mStr}-21`,
-        isCurrent: false,
-      },
-      {
-        index: 4,
-        name: 'Tuần 4',
-        startDate: `22/${mStr}`,
-        endDate: `${totalDays}/${mStr}`,
-        fullStartDate: `${year}-${mStr}-22`,
-        fullEndDate: `${year}-${mStr}-${totalDays}`,
-        isCurrent: false,
-      },
-    ];
+  // Chuỗi ngày hôm nay YYYY-MM-DD
+  const now = new Date();
+  const currentY = now.getFullYear();
+  const currentM = now.getMonth() + 1;
+  const currentD = now.getDate();
+  const todayStr = `${currentY}-${currentM < 10 ? `0${currentM}` : currentM}-${currentD < 10 ? `0${currentD}` : currentD}`;
+
+  const weeks: WeekPeriod[] = [];
+  let currentStart = 1;
+  let weekIndex = 1;
+
+  while (currentStart <= totalDays) {
+    // Tìm thứ trong tuần của currentStart (1 = Thứ Hai, ..., 7 = Chủ Nhật)
+    const d = new Date(year, monthNumber - 1, currentStart);
+    const jsDay = d.getDay(); // 0: CN, 1: T2, ..., 6: T7
+    const isoDay = jsDay === 0 ? 7 : jsDay;
+
+    // Số ngày còn lại trong tuần này tới Chủ Nhật: (7 - isoDay)
+    const daysUntilSunday = 7 - isoDay;
+    const currentEnd = Math.min(totalDays, currentStart + daysUntilSunday);
+
+    const startPad = currentStart < 10 ? `0${currentStart}` : `${currentStart}`;
+    const endPad = currentEnd < 10 ? `0${currentEnd}` : `${currentEnd}`;
+
+    const fullStartDate = `${year}-${mStr}-${startPad}`;
+    const fullEndDate = `${year}-${mStr}-${endPad}`;
+
+    // Kiểm tra xem tuần này có chứa ngày hôm nay không
+    const isCurrent = todayStr >= fullStartDate && todayStr <= fullEndDate;
+
+    weeks.push({
+      index: weekIndex,
+      name: `Tuần ${weekIndex}`,
+      startDate: `${startPad}/${mStr}`,
+      endDate: `${endPad}/${mStr}`,
+      fullStartDate,
+      fullEndDate,
+      isCurrent,
+    });
+
+    currentStart = currentEnd + 1;
+    weekIndex++;
   }
 
-  // 5 tuần
-  const weeks: WeekPeriod[] = [];
-  const ranges = [
-    [1, 7],
-    [8, 14],
-    [15, 21],
-    [22, 28],
-    [29, totalDays],
-  ];
-
-  ranges.forEach((range, idx) => {
-    if (range[0] <= totalDays) {
-      const startDay = range[0] < 10 ? `0${range[0]}` : `${range[0]}`;
-      const endDay = Math.min(range[1], totalDays) < 10
-        ? `0${Math.min(range[1], totalDays)}`
-        : `${Math.min(range[1], totalDays)}`;
-
-      weeks.push({
-        index: idx + 1,
-        name: `Tuần ${idx + 1}`,
-        startDate: `${startDay}/${mStr}`,
-        endDate: `${endDay}/${mStr}`,
-        fullStartDate: `${year}-${mStr}-${startDay}`,
-        fullEndDate: `${year}-${mStr}-${endDay}`,
-        isCurrent: idx === 0,
+  // Nếu không có tuần nào là isCurrent (ví dụ xem tháng tương lai hoặc quá khứ)
+  const hasCurrent = weeks.some((w) => w.isCurrent);
+  if (!hasCurrent && weeks.length > 0) {
+    if (year === currentY && monthNumber === currentM) {
+      // Nếu đúng tháng hiện tại nhưng múi giờ lệch nhẹ, tìm tuần chứa ngày hôm nay
+      const foundIdx = weeks.findIndex((w) => {
+        const s = parseInt(w.startDate.split('/')[0], 10);
+        const e = parseInt(w.endDate.split('/')[0], 10);
+        return currentD >= s && currentD <= e;
       });
+      if (foundIdx !== -1) {
+        weeks[foundIdx].isCurrent = true;
+      } else {
+        weeks[0].isCurrent = true;
+      }
+    } else if (year > currentY || (year === currentY && monthNumber > currentM)) {
+      // Tháng tương lai: để tuần 1 làm mặc định
+      weeks[0].isCurrent = true;
     }
-  });
+  }
 
   return weeks;
 }
@@ -114,11 +114,23 @@ export function generateWeeksForMonth(
  * Xác định giao dịch thuộc tuần nào dựa vào ngày (YYYY-MM-DD)
  */
 export function getWeekIndexForDate(dateStr: string, weeks: WeekPeriod[]): number {
+  if (!weeks || weeks.length === 0) return 0;
+
   for (let i = 0; i < weeks.length; i++) {
     if (dateStr >= weeks[i].fullStartDate && dateStr <= weeks[i].fullEndDate) {
       return i;
     }
   }
+
+  // Nếu ngày trước tuần 1 thì tính là tuần 1 (index 0)
+  if (dateStr < weeks[0].fullStartDate) {
+    return 0;
+  }
+  // Nếu ngày sau tuần cuối thì tính là tuần cuối
+  if (dateStr > weeks[weeks.length - 1].fullEndDate) {
+    return weeks.length - 1;
+  }
+
   // Mặc định tuần hiện tại hoặc tuần 0
   const current = weeks.findIndex((w) => w.isCurrent);
   return current !== -1 ? current : 0;

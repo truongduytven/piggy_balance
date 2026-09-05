@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { X, Check, Lock, ArrowRight, ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { FixedExpense } from '../types/finance';
 import { useFinance } from '../context/FinanceContext';
-import { formatVND } from '../lib/financeCalculations';
+import { formatVND, generateWeeksForMonth } from '../lib/financeCalculations';
 import { CozySelect } from './CozySelect';
 
 interface NewMonthWizardProps {
@@ -28,8 +28,14 @@ export const NewMonthWizard: React.FC<NewMonthWizardProps> = ({ isOpen, onClose 
 
   const [monthNumber, setMonthNumber] = useState<number>(currentMonthNum);
   const [year, setYear] = useState<number>(currentYearNum);
-  const [weeksCount, setWeeksCount] = useState<number>(4);
   const [customWeeklyBudget, setCustomWeeklyBudget] = useState<string>('');
+
+  // Tính toán các tuần thực tế theo lịch của tháng
+  const calculatedWeeks = useMemo(
+    () => generateWeeksForMonth(year, monthNumber),
+    [year, monthNumber]
+  );
+  const weeksCount = calculatedWeeks.length;
 
   if (!isOpen) return null;
 
@@ -78,7 +84,6 @@ export const NewMonthWizard: React.FC<NewMonthWizardProps> = ({ isOpen, onClose 
       initialMoney,
       fixedExpenses: fixedItems,
       lockedWeeklyBudget: finalWeeklyBudget,
-      preferFourWeeks: weeksCount === 4,
     });
 
     try {
@@ -324,15 +329,33 @@ export const NewMonthWizard: React.FC<NewMonthWizardProps> = ({ isOpen, onClose 
             {/* Thẻ ngân sách chốt - Có thể tùy chỉnh nếu muốn */}
             <div className="p-5 rounded-2xl bg-[#EBF8F1] border border-[#6FCF97]/30 text-center">
               <span className="text-xs font-bold text-[#58B880] block mb-1">
-                Ngân sách tuần đề xuất ({weeksCount} tuần)
+                Ngân sách tuần đề xuất ({weeksCount} tuần theo lịch thực tế)
               </span>
               <div className="text-3xl font-black text-[#3D405B]">
                 {formatVND(finalWeeklyBudget)}
                 <span className="text-xs font-semibold text-[#7A7D8C]"> / tuần 🌱</span>
               </div>
 
+              {/* Danh sách các tuần thực tế theo lịch */}
+              <div className="mt-3 pt-3 border-t border-[#6FCF97]/20 flex flex-wrap justify-center gap-1.5 text-[11px]">
+                {calculatedWeeks.map((w) => (
+                  <span
+                    key={w.index}
+                    className={`px-2.5 py-1 rounded-xl font-bold flex items-center gap-1 transition-all ${
+                      w.isCurrent
+                        ? 'bg-[#6FCF97] text-white shadow-xs'
+                        : 'bg-white text-[#3D405B] border border-gray-200'
+                    }`}
+                  >
+                    <span>{w.name}:</span>
+                    <span className="font-medium opacity-90">{w.startDate} - {w.endDate}</span>
+                    {w.isCurrent && <span className="text-[10px]">✨</span>}
+                  </span>
+                ))}
+              </div>
+
               {/* Tùy chỉnh ngân sách nếu muốn */}
-              <div className="mt-3 text-left">
+              <div className="mt-3.5 text-left">
                 <label className="text-[11px] font-bold text-[#7A7D8C] block mb-1">
                   Hoặc tự chỉnh ngân sách tuần (nếu muốn):
                 </label>

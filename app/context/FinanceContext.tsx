@@ -280,7 +280,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const mStr = monthNumber < 10 ? `0${monthNumber}` : `${monthNumber}`;
       const newMonthId = `${year}-${mStr}`;
       const monthName = `Tháng ${monthNumber}, ${year}`;
-      const generatedWeeks = generateWeeksForMonth(year, monthNumber, preferFourWeeks);
+      const generatedWeeks = generateWeeksForMonth(year, monthNumber);
 
       const localNewMonth: MonthData = {
         id: newMonthId,
