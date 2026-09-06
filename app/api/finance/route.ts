@@ -1,41 +1,53 @@
 import { NextResponse } from 'next/server';
 import pool from '../../lib/db';
+import { getAuthUserFromRequest } from '../../lib/auth';
 import { MonthData, FixedExpense, WeekPeriod, Expense } from '../../types/finance';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const authUser = await getAuthUserFromRequest(request);
+    if (!authUser) {
+      return NextResponse.json({ error: 'Chưa đăng nhập' }, { status: 401 });
+    }
+
     const client = await pool.connect();
     try {
-      // 1. Lấy danh sách tháng
+      // 1. Lấy danh sách tháng của user hiện tại
       const monthsRes = await client.query(`
         SELECT id, name, year, month_number, initial_money, locked_weekly_budget, status, created_at
         FROM months
+        WHERE user_id = $1
         ORDER BY year DESC, month_number DESC
-      `);
+      `, [authUser.id]);
 
       if (monthsRes.rows.length === 0) {
         return NextResponse.json({ months: [] });
       }
 
-      // 2. Lấy fixed_expenses
+      const monthIds = monthsRes.rows.map((m: any) => m.id);
+
+      // 2. Lấy fixed_expenses của các tháng thuộc user
       const fixedRes = await client.query(`
         SELECT id, month_id, name, amount, icon, is_paid
         FROM fixed_expenses
-      `);
+        WHERE month_id = ANY($1::text[])
+      `, [monthIds]);
 
-      // 3. Lấy weeks
+      // 3. Lấy weeks của các tháng thuộc user
       const weeksRes = await client.query(`
         SELECT id, month_id, week_index, name, start_date, end_date, full_start_date, full_end_date, is_current
         FROM weeks
+        WHERE month_id = ANY($1::text[])
         ORDER BY week_index ASC
-      `);
+      `, [monthIds]);
 
-      // 4. Lấy expenses
+      // 4. Lấy expenses của các tháng thuộc user
       const expensesRes = await client.query(`
         SELECT id, month_id, amount, category, description, date, week_index, wallet, note, created_at
         FROM expenses
+        WHERE month_id = ANY($1::text[])
         ORDER BY date DESC, created_at DESC
-      `);
+      `, [monthIds]);
 
       // Nhóm lại thành cấu trúc MonthData[]
       const months: MonthData[] = monthsRes.rows.map((m: any) => {

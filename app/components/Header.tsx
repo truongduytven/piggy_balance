@@ -5,20 +5,19 @@ import Image from 'next/image';
 import { Calendar, Sparkles, LogOut, Sun, Moon, Palette, X } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import { ThemeModal } from './ThemeModal';
 
 export const Header: React.FC = () => {
   const { activeMonth } = useFinance();
   const { mode } = useTheme();
+  const { currentUser, logout } = useAuth();
 
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
 
-  const handleLogout = () => {
-    try {
-      localStorage.removeItem('cozy_money_auth_session_v1');
-      window.location.reload();
-    } catch {}
+  const handleLogout = async () => {
+    await logout();
   };
 
   return (
@@ -102,8 +101,12 @@ export const Header: React.FC = () => {
                   <Image src="/images/avatar.jpg" alt="Avatar" fill className="object-cover" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-[#3D405B] text-sm">Chủ sổ tay</h3>
-                  <p className="text-[11px] text-[#7A7D8C]">cozymoney.app</p>
+                  <h3 className="font-bold text-[#3D405B] text-sm">
+                    {currentUser?.displayName || 'Chủ sổ tay'}
+                  </h3>
+                  <p className="text-[11px] text-[#6FCF97] font-bold">
+                    @{currentUser?.username || 'user'}
+                  </p>
                 </div>
               </div>
               <button

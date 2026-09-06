@@ -1,19 +1,26 @@
 import { NextResponse } from 'next/server';
 import pool from '../../lib/db';
+import { getAuthUserFromRequest } from '../../lib/auth';
 import { generateWeeksForMonth } from '../../lib/financeCalculations';
 import { FixedExpense } from '../../types/finance';
 
 export async function POST(request: Request) {
   try {
+    const authUser = await getAuthUserFromRequest(request);
+    if (!authUser) {
+      return NextResponse.json({ error: 'Chưa đăng nhập' }, { status: 401 });
+    }
+
     const body = await request.json();
-    const { year, monthNumber, initialMoney, fixedExpenses, lockedWeeklyBudget, preferFourWeeks } = body;
+    const { year, monthNumber, initialMoney, fixedExpenses, lockedWeeklyBudget } = body;
 
     if (!year || !monthNumber || !initialMoney || !lockedWeeklyBudget) {
       return NextResponse.json({ error: 'Thiếu thông tin chu kỳ tháng' }, { status: 400 });
     }
 
     const mStr = monthNumber < 10 ? `0${monthNumber}` : `${monthNumber}`;
-    const monthId = `${year}-${mStr}`;
+    // Định dạng ID phân tách theo user để không bị trùng khóa chính giữa các user
+    const monthId = `${authUser.id}_${year}-${mStr}`;
     const monthName = `Tháng ${monthNumber}, ${year}`;
     const weeks = generateWeeksForMonth(year, monthNumber);
 
@@ -22,19 +29,19 @@ export async function POST(request: Request) {
     try {
       await client.query('BEGIN');
 
-      // Chuyển các tháng ACTIVE hiện tại sang ARCHIVED
+      // Chuyển các tháng ACTIVE của CHÍNH USER NÀY sang ARCHIVED
       await client.query(`
-        UPDATE months SET status = 'ARCHIVED' WHERE status = 'ACTIVE'
-      `);
+        UPDATE months SET status = 'ARCHIVED' WHERE user_id = $1 AND status = 'ACTIVE'
+      `, [authUser.id]);
 
-      // Xóa tháng cũ nếu có cùng ID để tránh conflict
-      await client.query('DELETE FROM months WHERE id = $1', [monthId]);
+      // Xóa tháng cũ nếu có cùng ID của user này để tránh conflict
+      await client.query('DELETE FROM months WHERE id = $1 AND user_id = $2', [monthId, authUser.id]);
 
-      // Chèn tháng mới
+      // Chèn tháng mới gắn với user_id
       await client.query(`
-        INSERT INTO months (id, name, year, month_number, initial_money, locked_weekly_budget, status)
-        VALUES ($1, $2, $3, $4, $5, $6, 'ACTIVE')
-      `, [monthId, monthName, year, monthNumber, initialMoney, lockedWeeklyBudget]);
+        INSERT INTO months (id, user_id, name, year, month_number, initial_money, locked_weekly_budget, status)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, 'ACTIVE')
+      `, [monthId, authUser.id, monthName, year, monthNumber, initialMoney, lockedWeeklyBudget]);
 
       // Chèn chi phí cố định
       if (Array.isArray(fixedExpenses)) {

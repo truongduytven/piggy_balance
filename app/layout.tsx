@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Quicksand } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from './context/ThemeContext';
+import { AuthProvider } from './context/AuthContext';
 import { FinanceProvider } from './context/FinanceContext';
 import { DesktopGuard } from './components/DesktopGuard';
 import { PasswordGate } from './components/PasswordGate';
@@ -52,11 +53,13 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-[#FFFDF8] text-[#3D405B] antialiased" suppressHydrationWarning>
         <ThemeProvider>
-          <PasswordGate>
-            <FinanceProvider>
-              <DesktopGuard>{children}</DesktopGuard>
-            </FinanceProvider>
-          </PasswordGate>
+          <AuthProvider>
+            <PasswordGate>
+              <FinanceProvider>
+                <DesktopGuard>{children}</DesktopGuard>
+              </FinanceProvider>
+            </PasswordGate>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

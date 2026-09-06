@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
+const bcrypt = require('bcryptjs');
 
 // Đọc biến môi trường từ .env
 const envPath = path.join(__dirname, '..', '.env');
@@ -45,11 +46,24 @@ async function runCleanMigration() {
     await client.query(`DROP TABLE IF EXISTS weeks CASCADE;`);
     await client.query(`DROP TABLE IF EXISTS fixed_expenses CASCADE;`);
     await client.query(`DROP TABLE IF EXISTS months CASCADE;`);
+    await client.query(`DROP TABLE IF EXISTS users CASCADE;`);
+
+    // 0. Tạo bảng users
+    await client.query(`
+      CREATE TABLE users (
+        id VARCHAR(64) PRIMARY KEY,
+        username VARCHAR(64) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        display_name VARCHAR(128) NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
 
     // 1. Tạo bảng months
     await client.query(`
       CREATE TABLE months (
-        id VARCHAR(32) PRIMARY KEY,
+        id VARCHAR(64) PRIMARY KEY,
+        user_id VARCHAR(64) REFERENCES users(id) ON DELETE CASCADE,
         name VARCHAR(64) NOT NULL,
         year INT NOT NULL,
         month_number INT NOT NULL,
@@ -103,8 +117,15 @@ async function runCleanMigration() {
       );
     `);
 
+    // 5. Seed tài khoản mặc định Joshua
+    const joshuaHash = await bcrypt.hash('Congchua1802', 10);
+    await client.query(`
+      INSERT INTO users (id, username, password_hash, display_name)
+      VALUES ('usr-joshua', 'Joshua', $1, 'Joshua');
+    `, [joshuaHash]);
+
     await client.query('COMMIT');
-    console.log('✨ Đã xóa sạch và tạo mới toàn bộ cấu trúc bảng thành công! KHÔNG có bất kỳ dữ liệu giả nào.');
+    console.log('✨ Đã tạo bảng và tài khoản mặc định Joshua (mật khẩu: Congchua1802) thành công!');
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('❌ Lỗi khi chạy clean migration:', err);

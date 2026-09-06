@@ -55,17 +55,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       {/* Lịch sử các tháng trước */}
       <RecentMonths onSelectMonth={handleSelectRecentMonth} />
-
-      {/* Nút nổi thêm chi tiêu nhanh */}
-      <div className="pt-2">
-        <button
-          onClick={onOpenAddExpense}
-          className="w-full py-4 rounded-2xl bg-[#6FCF97] hover:bg-[#58B880] text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-[0_8px_25px_rgba(111,207,151,0.35)] active:scale-98 transition-all"
-        >
-          <Plus size={18} />
-          <span>Thêm khoản chi</span>
-        </button>
-      </div>
     </div>
   );
 };
