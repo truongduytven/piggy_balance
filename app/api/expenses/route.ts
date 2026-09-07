@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '../../lib/db';
 import { getAuthUserFromRequest } from '../../lib/auth';
+import { getTodayDateString } from '../../lib/financeCalculations';
 
 export async function POST(request: Request) {
   try {
@@ -30,6 +31,7 @@ export async function POST(request: Request) {
       }
 
       const expenseId = `exp-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+      const finalDate = date || getTodayDateString();
 
       await client.query(`
         INSERT INTO expenses (id, month_id, amount, category, description, date, week_index, wallet, note)
@@ -40,7 +42,7 @@ export async function POST(request: Request) {
         amount,
         category || 'other',
         description || 'Khoản chi',
-        date || new Date().toISOString().split('T')[0],
+        finalDate,
         weekIndex ?? 0,
         wallet || 'Ví chính',
         note || '',
@@ -54,7 +56,7 @@ export async function POST(request: Request) {
           amount,
           category,
           description,
-          date,
+          date: finalDate,
           weekIndex,
           wallet,
           note,

@@ -6,7 +6,7 @@ import confetti from 'canvas-confetti';
 import { ExpenseCategory } from '../types/finance';
 import { CATEGORIES, WALLETS } from '../lib/constants';
 import { useFinance } from '../context/FinanceContext';
-import { formatVND } from '../lib/financeCalculations';
+import { formatVND, getTodayDateString } from '../lib/financeCalculations';
 import { CozySelect } from './CozySelect';
 
 interface ExpenseModalProps {
@@ -21,7 +21,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) =
   const [category, setCategory] = useState<ExpenseCategory>('food');
   const [description, setDescription] = useState<string>('');
   const [wallet, setWallet] = useState<string>('Ví chính');
-  const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState<string>(getTodayDateString());
   const [showSuccessToast, setShowSuccessToast] = useState<boolean>(false);
 
   if (!isOpen) return null;

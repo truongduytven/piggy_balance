@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import pool from '../../lib/db';
 import { getAuthUserFromRequest } from '../../lib/auth';
 import { MonthData, FixedExpense, WeekPeriod, Expense } from '../../types/finance';
+import { normalizeMonthWeeks, getTodayDateString } from '../../lib/financeCalculations';
 
 export async function GET(request: Request) {
   try {
@@ -25,6 +26,18 @@ export async function GET(request: Request) {
       }
 
       const monthIds = monthsRes.rows.map((m: any) => m.id);
+
+      // Cập nhật is_current trong DB theo thời gian thực (ngày hôm nay)
+      const todayStr = getTodayDateString();
+      try {
+        await client.query(`
+          UPDATE weeks
+          SET is_current = CASE WHEN full_start_date <= $1 AND full_end_date >= $1 THEN true ELSE false END
+          WHERE month_id = ANY($2::text[]) AND full_start_date IS NOT NULL AND full_end_date IS NOT NULL
+        `, [todayStr, monthIds]);
+      } catch (err) {
+        console.warn('Không thể tự động đồng bộ weeks.is_current:', err);
+      }
 
       // 2. Lấy fixed_expenses của các tháng thuộc user
       const fixedRes = await client.query(`
@@ -61,7 +74,7 @@ export async function GET(request: Request) {
             isPaid: f.is_paid,
           }));
 
-        const mWeeks: WeekPeriod[] = weeksRes.rows
+        const rawWeeks: WeekPeriod[] = weeksRes.rows
           .filter((w: any) => w.month_id === m.id)
           .map((w: any) => ({
             index: w.week_index,
@@ -72,6 +85,8 @@ export async function GET(request: Request) {
             fullEndDate: w.full_end_date,
             isCurrent: w.is_current,
           }));
+
+        const mWeeks: WeekPeriod[] = normalizeMonthWeeks(rawWeeks, m.year, m.month_number);
 
         const mExpenses: Expense[] = expensesRes.rows
           .filter((e: any) => e.month_id === m.id)

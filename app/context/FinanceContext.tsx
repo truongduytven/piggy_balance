@@ -6,6 +6,7 @@ import {
   calculateMonthSummary,
   generateWeeksForMonth,
   getWeekIndexForDate,
+  getTodayDateString,
 } from '../lib/financeCalculations';
 
 import { GlobalLoading } from '../components/GlobalLoading';
@@ -116,7 +117,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         throw new Error('Chưa chọn tháng hiện tại để ghi chi tiêu');
       }
 
-      const todayStr = newExp.date || new Date().toISOString().split('T')[0];
+      const todayStr = newExp.date || getTodayDateString();
       const calculatedWeekIndex =
         newExp.weekIndex !== undefined
           ? newExp.weekIndex

@@ -24,6 +24,77 @@ export function getDaysInMonth(year: number, monthNumber: number): number {
 }
 
 /**
+ * Lấy chuỗi ngày hôm nay YYYY-MM-DD theo múi giờ Việt Nam hoặc địa phương
+ */
+export function getTodayDateString(d: Date = new Date()): string {
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(d);
+  } catch {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+}
+
+/**
+ * Chuẩn hóa các tuần của tháng để đảm bảo `isCurrent` luôn phản ánh chính xác ngày hôm nay
+ */
+export function normalizeMonthWeeks(
+  weeks: WeekPeriod[],
+  year: number,
+  monthNumber: number
+): WeekPeriod[] {
+  if (!weeks || weeks.length === 0) return [];
+
+  const todayStr = getTodayDateString();
+  const [currentYStr, currentMStr, currentDStr] = todayStr.split('-');
+  const currentY = parseInt(currentYStr, 10);
+  const currentM = parseInt(currentMStr, 10);
+  const currentD = parseInt(currentDStr, 10);
+
+  // Tìm tuần chứa ngày hôm nay
+  let currentIdx = weeks.findIndex(
+    (w) => w.fullStartDate && w.fullEndDate && todayStr >= w.fullStartDate && todayStr <= w.fullEndDate
+  );
+
+  // Nếu không tìm thấy tuần chứa ngày hôm nay theo fullStartDate/fullEndDate
+  if (currentIdx === -1) {
+    if (year === currentY && monthNumber === currentM) {
+      // Đúng tháng hiện tại nhưng ngày ở rìa
+      const foundIdx = weeks.findIndex((w) => {
+        const s = parseInt(w.startDate.split('/')[0], 10);
+        const e = parseInt(w.endDate.split('/')[0], 10);
+        return currentD >= s && currentD <= e;
+      });
+      if (foundIdx !== -1) {
+        currentIdx = foundIdx;
+      } else if (currentD < parseInt(weeks[0].startDate.split('/')[0], 10)) {
+        currentIdx = 0;
+      } else {
+        currentIdx = weeks.length - 1;
+      }
+    } else if (year > currentY || (year === currentY && monthNumber > currentM)) {
+      // Tháng tương lai: không có tuần hiện tại
+      currentIdx = -1;
+    } else {
+      // Tháng quá khứ: không có tuần nào là current
+      currentIdx = -1;
+    }
+  }
+
+  return weeks.map((w, idx) => ({
+    ...w,
+    isCurrent: idx === currentIdx,
+  }));
+}
+
+/**
  * Tạo danh sách các tuần cho tháng theo khoảng ngày thực tế.
  * - Mặc định chia 4 tuần (3 tuần đầu 7 ngày, tuần 4 đến hết tháng),
  * - Hoặc 5 tuần nếu tháng có > 28 ngày và cấu hình 5 tuần.
@@ -43,11 +114,11 @@ export function generateWeeksForMonth(
   const mStr = monthNumber < 10 ? `0${monthNumber}` : `${monthNumber}`;
 
   // Chuỗi ngày hôm nay YYYY-MM-DD
-  const now = new Date();
-  const currentY = now.getFullYear();
-  const currentM = now.getMonth() + 1;
-  const currentD = now.getDate();
-  const todayStr = `${currentY}-${currentM < 10 ? `0${currentM}` : currentM}-${currentD < 10 ? `0${currentD}` : currentD}`;
+  const todayStr = getTodayDateString();
+  const [currentYStr, currentMStr, currentDStr] = todayStr.split('-');
+  const currentY = parseInt(currentYStr, 10);
+  const currentM = parseInt(currentMStr, 10);
+  const currentD = parseInt(currentDStr, 10);
 
   const weeks: WeekPeriod[] = [];
   let currentStart = 1;
@@ -169,11 +240,14 @@ export function calculateMonthSummary(month: MonthData): MonthSummary {
     }
   });
 
+  // Chuẩn hóa isCurrent theo thời gian thực (ngày hôm nay)
+  const normalizedWeeks = normalizeMonthWeeks(month.weeks, month.year, month.monthNumber);
+
   // Tính tiến độ cho từng tuần
   // QUY TẮC: remaining = lockedWeeklyBudget - spent (KHÔNG TỰ ĐỘNG DỒN TIỀN)
-  const weeksSummary: WeekSummary[] = month.weeks.map((week, idx) => {
+  const weeksSummary: WeekSummary[] = normalizedWeeks.map((week, idx) => {
     const weekExpenses = month.expenses.filter(
-      (e) => e.weekIndex === idx || (e.weekIndex === undefined && getWeekIndexForDate(e.date, month.weeks) === idx)
+      (e) => e.weekIndex === idx || (e.weekIndex === undefined && getWeekIndexForDate(e.date, normalizedWeeks) === idx)
     );
     const spent = weekExpenses.reduce((sum, e) => sum + e.amount, 0);
     const remaining = lockedWeeklyBudget - spent;
@@ -240,7 +314,10 @@ export function calculateMonthSummary(month: MonthData): MonthSummary {
   }
 
   return {
-    month,
+    month: {
+      ...month,
+      weeks: normalizedWeeks,
+    },
     initialMoney: month.initialMoney,
     totalFixed,
     availableBudget,
