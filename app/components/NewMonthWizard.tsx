@@ -367,6 +367,33 @@ export const NewMonthWizard: React.FC<NewMonthWizardProps> = ({ isOpen, onClose 
                   className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-[#3D405B] focus:outline-none focus:border-[#6FCF97]"
                 />
               </div>
+
+              {/* Bảng phân bổ & Khoản tích lũy dôi dư */}
+              <div className="mt-3 pt-3 border-t border-[#6FCF97]/20 text-xs space-y-1.5 text-left">
+                <div className="flex justify-between text-[#7A7D8C]">
+                  <span>Tổng ngân sách {weeksCount} tuần:</span>
+                  <strong className="text-[#3D405B]">{formatVND(finalWeeklyBudget * weeksCount)}</strong>
+                </div>
+                {availableBudget - finalWeeklyBudget * weeksCount > 0 ? (
+                  <div className="flex justify-between items-center bg-white/80 px-2.5 py-1.5 rounded-xl border border-[#6FCF97]/30 text-[#2E7D32] font-bold">
+                    <span className="flex items-center gap-1">
+                      <span>🏦</span>
+                      <span>Quỹ tích lũy / Dôi dư:</span>
+                    </span>
+                    <strong className="text-sm text-[#58B880]">
+                      {formatVND(availableBudget - finalWeeklyBudget * weeksCount)}
+                    </strong>
+                  </div>
+                ) : availableBudget - finalWeeklyBudget * weeksCount < 0 ? (
+                  <div className="text-[11px] text-[#FF7B7B] font-semibold">
+                    ⚠️ Ngân sách các tuần đang vượt quá số tiền khả dụng ({formatVND(finalWeeklyBudget * weeksCount - availableBudget)})
+                  </div>
+                ) : (
+                  <div className="text-[11px] text-[#7A7D8C] italic">
+                    Phân bổ trọn vẹn 100% số tiền khả dụng cho {weeksCount} tuần.
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex items-center gap-2 pt-2">

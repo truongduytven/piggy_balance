@@ -70,6 +70,28 @@ export const MonthlySummaryCard: React.FC<MonthlySummaryCardProps> = ({ summary 
         </div>
       </div>
 
+      {/* Phân rã Quỹ tích lũy dôi dư & Ngân sách các tuần */}
+      {summary.unallocatedSavings > 0 && (
+        <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-gray-100 text-xs">
+          <div className="bg-[#F8F9FA] p-2.5 rounded-xl">
+            <span className="text-[10px] font-bold text-[#7A7D8C] block">
+              🏦 Quỹ tích lũy / Dôi dư
+            </span>
+            <strong className="text-xs font-black text-[#3D405B] block mt-0.5">
+              {formatVND(summary.unallocatedSavings)}
+            </strong>
+          </div>
+          <div className="bg-[#EBF8F1] p-2.5 rounded-xl border border-[#6FCF97]/20">
+            <span className="text-[10px] font-bold text-[#58B880] block">
+              📅 Ngân sách tuần còn
+            </span>
+            <strong className="text-xs font-black text-[#58B880] block mt-0.5">
+              {formatVND(summary.totalWeeksRemaining)}
+            </strong>
+          </div>
+        </div>
+      )}
+
       {/* Tiến độ tổng tháng */}
       <div className="mt-4">
         <div className="w-full h-3 bg-[#F1F2F6] rounded-full overflow-hidden p-0.5">

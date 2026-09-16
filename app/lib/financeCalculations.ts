@@ -313,6 +313,16 @@ export function calculateMonthSummary(month: MonthData): MonthSummary {
     monthStatusLabel = 'Bạn đang quản lý tháng này khá ổn định 🌱';
   }
 
+  // Tổng ngân sách cấp cho các tuần trong tháng
+  const totalWeeksBudget = lockedWeeklyBudget * normalizedWeeks.length;
+  // Khoản tích lũy / dôi dư còn lại sau khi trừ cố định và phân bổ các tuần (ví dụ: 10tr - 2tr cố định - 4x500k tuần = 6tr)
+  const unallocatedSavings = Math.max(0, availableBudget - totalWeeksBudget);
+  // Tổng số tiền còn lại thực tế trong các tuần
+  const totalWeeksRemaining = weeksSummary.reduce(
+    (sum, w) => sum + Math.max(0, w.remaining),
+    0
+  );
+
   return {
     month: {
       ...month,
@@ -329,5 +339,8 @@ export function calculateMonthSummary(month: MonthData): MonthSummary {
     categorySpending,
     status: monthStatus,
     statusLabel: monthStatusLabel,
+    totalWeeksBudget,
+    unallocatedSavings,
+    totalWeeksRemaining,
   };
 }

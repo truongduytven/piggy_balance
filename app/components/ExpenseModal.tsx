@@ -7,6 +7,7 @@ import { ExpenseCategory } from '../types/finance';
 import { CATEGORIES, WALLETS } from '../lib/constants';
 import { useFinance } from '../context/FinanceContext';
 import { formatVND, getTodayDateString } from '../lib/financeCalculations';
+import { getSpendingRoast, RoastInfo } from '../lib/roastMessages';
 import { CozySelect } from './CozySelect';
 
 interface ExpenseModalProps {
@@ -15,7 +16,7 @@ interface ExpenseModalProps {
 }
 
 export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) => {
-  const { addExpense, activeMonth, isApiLoading } = useFinance();
+  const { addExpense, activeMonth, activeMonthSummary, isApiLoading } = useFinance();
 
   const [amountStr, setAmountStr] = useState<string>('');
   const [category, setCategory] = useState<ExpenseCategory>('food');
@@ -23,6 +24,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) =
   const [wallet, setWallet] = useState<string>('Ví chính');
   const [date, setDate] = useState<string>(getTodayDateString());
   const [showSuccessToast, setShowSuccessToast] = useState<boolean>(false);
+  const [submittedRoast, setSubmittedRoast] = useState<RoastInfo | null>(null);
 
   if (!isOpen) return null;
 
@@ -31,6 +33,20 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) =
   const handleQuickAmount = (val: number) => {
     setAmountStr(val.toString());
   };
+
+  const inputAmount = parseInt(amountStr.replace(/\D/g, ''), 10) || 0;
+  const currentWeeklyRemaining = activeMonthSummary?.currentWeekSummary?.remaining ?? 0;
+  const currentWeeklyBudget = activeMonthSummary?.month.lockedWeeklyBudget ?? 1;
+  const currentWeeklySpent = activeMonthSummary?.currentWeekSummary?.spent ?? 0;
+
+  const projectedSpent = currentWeeklySpent + inputAmount;
+  const projectedRemaining = currentWeeklyRemaining - inputAmount;
+  const projectedPercent =
+    currentWeeklyBudget > 0 ? (projectedSpent / currentWeeklyBudget) * 100 : 0;
+  const projectedRoast =
+    inputAmount > 0
+      ? getSpendingRoast(projectedPercent, projectedSpent, projectedRemaining)
+      : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,15 +67,19 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) =
       date,
     });
 
-    // Bắn pháo hoa ăn mừng nhẹ nhàng
-    try {
-      confetti({
-        particleCount: 35,
-        spread: 50,
-        origin: { y: 0.7 },
-        colors: ['#6FCF97', '#FF8FAB', '#FFD166'],
-      });
-    } catch {}
+    setSubmittedRoast(projectedRoast);
+
+    // Bắn pháo hoa ăn mừng nhẹ nhàng nếu không bị over
+    if (!projectedRoast || projectedRoast.level !== 'over') {
+      try {
+        confetti({
+          particleCount: 35,
+          spread: 50,
+          origin: { y: 0.7 },
+          colors: ['#6FCF97', '#FF8FAB', '#FFD166'],
+        });
+      } catch {}
+    }
 
     setShowSuccessToast(true);
     setTimeout(() => {
@@ -68,7 +88,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) =
       // Reset form
       setAmountStr('');
       setDescription('');
-    }, 1200);
+    }, 1800);
   };
 
   return (
@@ -120,6 +140,23 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) =
                 </button>
               ))}
             </div>
+
+            {/* Cảnh báo / Câu chửi yêu thời gian thực khi đang nhập số tiền */}
+            {projectedRoast && inputAmount > 0 && (
+              <div
+                className={`mt-2.5 p-3 rounded-2xl border text-xs flex items-start gap-2.5 animate-fade-in ${projectedRoast.badgeBg} ${projectedRoast.badgeBorder}`}
+              >
+                <span className="text-xl select-none mt-0.5">{projectedRoast.emoji}</span>
+                <div className="flex-1">
+                  <div className={`text-[10px] font-black uppercase tracking-wider ${projectedRoast.badgeText}`}>
+                    {projectedRoast.title} • {projectedRemaining < 0 ? `Vượt ${formatVND(Math.abs(projectedRemaining))}` : `Còn ${formatVND(projectedRemaining)}`}
+                  </div>
+                  <p className="text-xs font-bold text-[#3D405B] mt-0.5 leading-snug">
+                    {projectedRoast.message}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Danh mục */}
@@ -196,14 +233,30 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose }) =
           </button>
         </form>
 
-        {/* Toast thông báo cute */}
+        {/* Toast thông báo vui nhộn kèm câu nhắc nhở */}
         {showSuccessToast && (
           <div className="absolute inset-0 bg-white/95 backdrop-blur-xs rounded-[32px] flex flex-col items-center justify-center p-6 text-center animate-fade-in z-20">
-            <div className="w-16 h-16 rounded-full bg-[#EBF8F1] flex items-center justify-center text-[#58B880] mb-3 shadow-inner">
-              <Check size={32} strokeWidth={3} />
+            <div
+              className={`w-16 h-16 rounded-full flex items-center justify-center mb-3 shadow-inner ${
+                submittedRoast && submittedRoast.level === 'over'
+                  ? 'bg-[#FFEAEA] text-[#FF7B7B]'
+                  : submittedRoast && submittedRoast.level === 'warning'
+                  ? 'bg-[#FFF8E7] text-[#E5A800]'
+                  : 'bg-[#EBF8F1] text-[#58B880]'
+              }`}
+            >
+              {submittedRoast && (submittedRoast.level === 'over' || submittedRoast.level === 'warning') ? (
+                <span className="text-2xl select-none">{submittedRoast.emoji}</span>
+              ) : (
+                <Check size={32} strokeWidth={3} />
+              )}
             </div>
-            <h4 className="text-base font-extrabold text-[#3D405B]">Đã ghi nhận khoản chi 🌱</h4>
-            <p className="text-xs text-[#7A7D8C] mt-1">Ngân sách tuần đã được cập nhật!</p>
+            <h4 className="text-base font-extrabold text-[#3D405B]">
+              Đã ghi nhận -{formatVND(parseInt(amountStr.replace(/\D/g, ''), 10) || 0)}
+            </h4>
+            <p className="text-xs font-bold text-[#3D405B] mt-2 max-w-[290px] leading-relaxed">
+              {submittedRoast ? submittedRoast.message : 'Ngân sách tuần đã được cập nhật!'}
+            </p>
           </div>
         )}
       </div>

@@ -84,6 +84,9 @@ export interface MonthSummary {
   categorySpending: Record<ExpenseCategory, number>;
   status: 'safe' | 'normal' | 'fast' | 'over';
   statusLabel: string;
+  totalWeeksBudget: number;
+  unallocatedSavings: number;
+  totalWeeksRemaining: number;
 }
 
 export interface PurchaseAdviceData {
