@@ -12,7 +12,7 @@ import { NewMonthWizard } from './components/NewMonthWizard';
 import { useFinance } from './context/FinanceContext';
 
 export default function AppHome() {
-  const { isLoaded } = useFinance();
+  const { isLoaded, setActiveMonthId } = useFinance();
 
   const [currentTab, setCurrentTab] = useState<'home' | 'month' | 'ai' | 'settings'>('home');
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
@@ -59,7 +59,13 @@ export default function AppHome() {
         )}
 
         {currentTab === 'settings' && (
-          <SettingsView onOpenNewMonthWizard={() => setIsNewMonthWizardOpen(true)} />
+          <SettingsView
+            onOpenNewMonthWizard={() => setIsNewMonthWizardOpen(true)}
+            onNavigateToMonth={(monthId) => {
+              setActiveMonthId(monthId);
+              setCurrentTab('month');
+            }}
+          />
         )}
       </div>
 

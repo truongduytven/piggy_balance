@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Home, Calendar, Sparkles, Settings } from 'lucide-react';
+import { Home, Calendar, Sparkles, User } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext';
 
 interface BottomNavProps {
@@ -63,7 +63,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange })
         <span className="text-[11px]">Cozy AI</span>
       </button>
 
-      {/* Cài đặt */}
+      {/* Tài khoản */}
       <button
         onClick={() => onTabChange('settings')}
         className={`flex flex-col items-center gap-1 transition-all ${currentTab === 'settings'
@@ -75,9 +75,9 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onTabChange })
           className={`w-11 h-7 rounded-full flex items-center justify-center transition-colors ${currentTab === 'settings' ? 'bg-[#EBF8F1]' : ''
             }`}
         >
-          <Settings size={20} strokeWidth={currentTab === 'settings' ? 2.5 : 2} />
+          <User size={20} strokeWidth={currentTab === 'settings' ? 2.5 : 2} />
         </div>
-        <span className="text-[11px]">Cài đặt</span>
+        <span className="text-[11px]">Tài khoản</span>
       </button>
     </nav>
   );
