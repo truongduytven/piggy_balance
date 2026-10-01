@@ -86,7 +86,7 @@ export default function AppHome() {
         isOpen={isNewMonthWizardOpen}
         onClose={() => setIsNewMonthWizardOpen(false)}
       />
-      <button onClick={() => window.location.href = 'gsale://home'}>Thử nghiệm</button>
+
       {/* Bottom Navigation */}
       <BottomNav currentTab={currentTab} onTabChange={handleTabChange} />
     </main>

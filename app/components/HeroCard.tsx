@@ -61,13 +61,12 @@ export const HeroCard: React.FC<HeroCardProps> = ({ summary, onViewMonthDetail }
       <div className="mt-4 mb-2">
         <div className="w-full h-3.5 bg-[#F1F2F6] rounded-full overflow-hidden p-0.5">
           <div
-            className={`h-full rounded-full transition-all duration-700 ${
-              percentSpent > 100
+            className={`h-full rounded-full transition-all duration-700 ${percentSpent > 100
                 ? 'bg-[#FF7B7B]'
                 : percentSpent > 80
-                ? 'bg-[#FFD166]'
-                : 'bg-[#6FCF97]'
-            }`}
+                  ? 'bg-[#FFD166]'
+                  : 'bg-[#6FCF97]'
+              }`}
             style={{ width: `${Math.min(100, Math.max(5, percentSpent))}%` }}
           />
         </div>
@@ -128,6 +127,14 @@ export const HeroCard: React.FC<HeroCardProps> = ({ summary, onViewMonthDetail }
         className="w-full mt-2 py-3.5 px-4 rounded-2xl bg-[#6FCF97] hover:bg-[#58B880] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-[0_6px_20px_rgba(111,207,151,0.3)] active:scale-98 transition-all"
       >
         <span>Xem chi tiết tháng</span>
+        <ArrowRight size={16} />
+      </button>
+
+      <button
+        onClick={() => window.location.href = 'gsale://home'}
+        className="w-full mt-2 py-3.5 px-4 rounded-2xl bg-[#6FCF97] hover:bg-[#58B880] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-[0_6px_20px_rgba(111,207,151,0.3)] active:scale-98 transition-all"
+      >
+        <span>Thử nghiệm</span>
         <ArrowRight size={16} />
       </button>
     </div>
